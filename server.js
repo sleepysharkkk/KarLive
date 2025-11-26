@@ -48,7 +48,7 @@ app.post("/api/upload", upload.single("video"), (req, res) => {
     const videoId = path.parse(filename).name;  // vid_1234567890
 
     // Render 上線後，這裡的 domain 會換成 https://你的服務名.onrender.com
-    const baseUrl = process.env.BASE_URL || "http://localhost:3001";
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || "http://localhost:3001";
     const url = `${baseUrl}/uploads/${filename}`;
 
     console.log("Uploaded:", videoId, url);
