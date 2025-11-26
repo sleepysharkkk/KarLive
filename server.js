@@ -12,7 +12,7 @@ app.use(cors());
 
 // ---- 靜態檔案：前端頁面 ----
 const publicFolder = path.join(__dirname, "public");
-app.use(express.static(publicFolder));
+
 
 // ---- 確保 uploads 資料夾存在 ----
 const uploadFolder = path.join(__dirname, "uploads");
@@ -61,9 +61,6 @@ app.post("/api/upload", upload.single("video"), (req, res) => {
 });
 
 // ---- 其餘路由都回 index.html（例如直接開 /創作.html ）----
-app.get("*", (req, res) => {
-  res.sendFile(path.join(publicFolder, "index.html"));
-});
 
 // ---- 啟動 Server ----
 const PORT = process.env.PORT || 3001;
