@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>KarLive - 訊息</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="top-bar">
+    <span id="userStatus">遊客模式</span>
+    <a href="login.html" class="login-button">登入 / 註冊</a>
+    </header>
+
+    <main class="message-page">
+        <h1 class="message-title">訊息</h1>
+
+        <!-- 上方小分類：全部 / 私訊 / 通知 -->
+        <div class="message-tabs">
+            <button class="tab active">全部</button>
+            <button class="tab">私訊</button>
+            <button class="tab">通知</button>
+        </div>
+
+        <!-- 訊息列表 -->
+        <div class="message-list">
+
+            <div class="message-item unread">
+                <div class="message-avatar">A</div>
+                <div class="message-main">
+                    <div class="message-row">
+                        <span class="message-name">系統通知</span>
+                        <span class="message-time">剛剛</span>
+                    </div>
+                    <div class="message-preview">你的直播審核已通過，快來開播吧！</div>
+                </div>
+            </div>
+
+            <div class="message-item">
+                <div class="message-avatar">B</div>
+                <div class="message-main">
+                    <div class="message-row">
+                        <span class="message-name">小魚</span>
+                        <span class="message-time">5 分鐘前</span>
+                    </div>
+                    <div class="message-preview">你昨天那場直播超好笑 😂</div>
+                </div>
+            </div>
+
+            <div class="message-item">
+                <div class="message-avatar">C</div>
+                <div class="message-main">
+                    <div class="message-row">
+                        <span class="message-name">互動通知</span>
+                        <span class="message-time">1 小時前</span>
+                    </div>
+                    <div class="message-preview">有 12 個人點讚了你的影片。</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 底部導覽列：訊息高亮 -->
+    <nav class="bottom-nav">
+        <a href="index.html">首頁</a>
+        <a href="./直播.html">直播</a>
+        <a href="./創作.html">創作</a>
+        <a href="./訊息.html" class="active">訊息</a>
+        <a href="./個人.html">個人中心</a>
+    </nav>
+
+</body>
+</html>

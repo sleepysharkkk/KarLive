@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>KarLive - 創作</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <main class="create-page">
+        <h1 class="create-title">創作中心</h1>
+
+        <!-- 登入狀態顯示 -->
+        <div class="auth-box">
+            <div>
+                目前狀態：<span id="authStatus">檢查中...</span>
+            </div>
+            <div class="auth-buttons">
+                <a href="login.html" class="btn-link" id="goLoginBtn">前往登入 / 註冊</a>
+            </div>
+        </div>
+
+        <!-- 未登入遮罩 -->
+        <div id="needLoginMask" class="need-login-mask" style="display:none;">
+            <p>請先登入後才能使用創作功能</p>
+            <a href="login.html">前往登入頁</a>
+        </div>
+
+        <!-- 上傳區：這一行是隱藏的檔案選擇 -->
+        <input type="file" id="videoFile" accept="video/*" style="display: none">
+
+        <div class="create-card-list">
+
+            <!-- 點這張卡片 -> 叫出檔案選擇並上傳 -->
+            <div class="create-card" id="uploadCard">
+                <div class="create-icon">🎥</div>
+                <div class="create-text">
+                    <span>上傳影片</span>
+                    <small id="uploadStatus">選取並上傳你的影片</small>
+                </div>
+            </div>
+
+            <div class="create-card">
+                <div class="create-icon">🔴</div>
+                <div class="create-text">
+                    <span>開啟直播</span>
+                    <small>立即開始直播</small>
+                </div>
+            </div>
+
+            <div class="create-card">
+                <div class="create-icon">🖼</div>
+                <div class="create-text">
+                    <span>發佈貼文</span>
+                    <small>分享你的照片與想法</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- 上傳成功的影片會出現在這裡 -->
+        <h2 class="section-title" style="margin-top:20px;">我上傳的影片</h2>
+        <div id="videoList" class="video-list"></div>
+
+    </main>
+
+    <!-- 底部導航列：讓「創作」高亮 -->
+    <nav class="bottom-nav">
+        <a href="index.html">首頁</a>
+        <a href="./直播.html">直播</a>
+        <a href="./創作.html" class="active">創作</a>
+        <a href="./訊息.html">訊息</a>
+        <a href="./個人.html">個人中心</a>
+    </nav>
+
+    <!-- Firebase + 上傳 + 只顯示自己上傳的影片 -->
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { 
+        getDatabase, ref, set, get, onValue 
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+    import {
+        getAuth,
+        onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+
+    // ⚠ 這裡請「照抄你 login.html 裡那一份 firebaseConfig」
+    const firebaseConfig = {
+    apiKey: "AIzaSyAuogis16VOaWE1aP4nO4JH6Dw2elN1VmA",
+    authDomain: "karlive-4953d.firebaseapp.com",
+    databaseURL: "https://karlive-4953d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "karlive-4953d",
+    storageBucket: "karlive-4953d.firebasestorage.app",
+    messagingSenderId: "990353970674",
+    appId: "1:990353970674:web:033017250976fb03fb476b",
+    measurementId: "G-YEFWX1906F"
+  };
+
+    const app  = initializeApp(firebaseConfig);
+    const db   = getDatabase(app);
+    const auth = getAuth(app);
+
+    const authStatus   = document.getElementById("authStatus");
+    const needLoginMask= document.getElementById("needLoginMask");
+    const uploadCard   = document.getElementById("uploadCard");
+    const uploadStatus = document.getElementById("uploadStatus");
+    const fileInput    = document.getElementById("videoFile");
+    const videoList    = document.getElementById("videoList");
+    const goLoginBtn   = document.getElementById("goLoginBtn");
+
+    let currentUser = null;
+
+    // -----------------------
+    // 監聽登入狀態：未登入 -> 蓋遮罩；已登入 -> 顯示自己上傳的影片
+    // -----------------------
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            currentUser = null;
+            authStatus.textContent = "未登入（遊客模式）";
+            needLoginMask.style.display = "flex";
+            videoList.innerHTML = "";
+            if (goLoginBtn) goLoginBtn.style.display = "inline-block";
+            return;
+        }
+
+        currentUser = user;
+        authStatus.textContent = `已登入：${user.email}`;
+        needLoginMask.style.display = "none";
+        if (goLoginBtn) goLoginBtn.style.display = "none";
+
+        await loadMyVideos();
+    });
+
+    // -----------------------
+    // 點「上傳影片」卡片 -> 觸發檔案選擇
+    // -----------------------
+    uploadCard.addEventListener("click", () => {
+        if (!currentUser) {
+            alert("請先登入後再上傳影片");
+            return;
+        }
+        fileInput.click();
+    });
+
+    // -----------------------
+    // 檔案選擇後，上傳到後端 + 存進 Firebase
+    // -----------------------
+    fileInput.addEventListener("change", async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        if (!currentUser) {
+            alert("請先登入後再上傳影片");
+            fileInput.value = "";
+            return;
+        }
+
+        uploadStatus.textContent = "上傳中…";
+
+        const formData = new FormData();
+        formData.append("video", file);
+
+        try {
+            // 這裡是你的 Node 後端上傳 API
+            const res = await fetch("http://localhost:3001/api/upload", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await res.json();
+            const videoId = data.videoId;
+            const url     = data.url;
+
+            // 存到 Firebase（影片資料）
+            await set(ref(db, "videos/" + videoId), {
+                url,
+                createdAt: Date.now(),
+                ownerUid: currentUser.uid,
+                ownerEmail: currentUser.email
+            });
+
+            // 反向索引：這個 user 上傳了哪些影片
+            await set(ref(db, "userVideos/" + currentUser.uid + "/" + videoId), true);
+
+            // 初始化讚數
+            await set(ref(db, "likes/" + videoId), 0);
+
+            uploadStatus.textContent = "上傳完成！";
+            fileInput.value = "";
+
+            // 重新載入自己的影片
+            await loadMyVideos();
+        } catch (err) {
+            console.error(err);
+            uploadStatus.textContent = "上傳失敗，請稍後再試";
+        }
+    });
+
+    // -----------------------
+    // 載入「我上傳的影片」
+    // -----------------------
+    async function loadMyVideos() {
+        if (!currentUser) return;
+
+        videoList.innerHTML = "載入中…";
+
+        const userVideosRef  = ref(db, "userVideos/" + currentUser.uid);
+        const snapUserVideos = await get(userVideosRef);
+
+        if (!snapUserVideos.exists()) {
+            videoList.innerHTML = "你目前還沒有上傳影片。";
+            return;
+        }
+
+        const videoIds = Object.keys(snapUserVideos.val());
+
+        videoList.innerHTML = "";
+        for (const videoId of videoIds) {
+            const videoRef  = ref(db, "videos/" + videoId);
+            const snapVideo = await get(videoRef);
+            if (!snapVideo.exists()) continue;
+
+            const info = snapVideo.val();
+            renderVideoCard(videoId, info);
+        }
+
+        if (videoIds.length === 0) {
+            videoList.innerHTML = "你目前還沒有上傳影片。";
+        }
+    }
+
+    // -----------------------
+    // 在頁面上畫出一個影片卡片
+    // -----------------------
+    function renderVideoCard(videoId, info) {
+        const card = document.createElement("div");
+        card.className = "video-card";
+
+        const created = info.createdAt
+            ? new Date(info.createdAt).toLocaleString()
+            : "";
+
+        card.innerHTML = `
+            <video src="${info.url}" controls class="video-player"></video>
+            <div class="video-like">
+                <div class="video-meta">
+                    上傳時間：${created}<br>
+                    上傳者：${info.ownerEmail || "不明"}
+                </div>
+                <div class="icon-block" onclick="toggleLike('${videoId}')">
+                    <div class="label">點讚</div>
+                    <div class="value" id="likeCount_${videoId}">0</div>
+                </div>
+            </div>
+        `;
+        videoList.prepend(card);
+
+        setupLike(videoId);
+    }
+
+    // -----------------------
+    // 點讚同步（跟首頁邏輯一樣）
+    // -----------------------
+    function setupLike(videoId) {
+        const likeRef = ref(db, "likes/" + videoId);
+        const el = document.getElementById("likeCount_" + videoId);
+
+        onValue(likeRef, snapshot => {
+            el.innerText = snapshot.val() ?? 0;
+        });
+    }
+
+    // 點讚：未登入不給點
+    window.toggleLike = function(videoId) {
+        if (!currentUser) {
+            alert("請先登入才能點讚");
+            return;
+        }
+
+        const likeRef = ref(db, "likes/" + videoId);
+        const el = document.getElementById("likeCount_" + videoId);
+        const now   = Number(el.innerText) || 0;
+        const key   = "liked_" + videoId;
+        const liked = localStorage.getItem(key) === "true";
+
+        if (liked) {
+            set(likeRef, now - 1);
+            localStorage.setItem(key, "false");
+        } else {
+            set(likeRef, now + 1);
+            localStorage.setItem(key, "true");
+        }
+    };
+    </script>
+</body>
+</html>

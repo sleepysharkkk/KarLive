@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>KarLive - 登入</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="login-page">
+    <h1>登入 / 註冊 KarLive</h1>
+
+    <div class="auth-box">
+      <div>
+        <input id="emailInput" type="email" placeholder="Email">
+        <input id="passwordInput" type="password" placeholder="密碼">
+      </div>
+      <div class="auth-buttons">
+        <button id="btnRegister">註冊</button>
+        <button id="btnLogin">登入</button>
+        <button id="btnLogout">登出</button>
+      </div>
+      <div class="auth-status">
+        目前狀態：<span id="authStatus">未登入</span>
+      </div>
+    </div>
+
+    <p style="margin-top:16px;">
+      登入後可以使用：創作上傳、直播等功能。<br>
+      未登入時，可以以「遊客模式」瀏覽首頁與個人中心。
+    </p>
+
+    <a href="index.html" class="login-button">回首頁</a>
+  </main>
+
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import { 
+    getAuth, 
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+
+  // 跟你原本一樣的 Firebase 設定
+  const firebaseConfig = {
+    apiKey: "AIzaSyAuogis16VOaWE1aP4nO4JH6Dw2elN1VmA",
+    authDomain: "karlive-4953d.firebaseapp.com",
+    databaseURL: "https://karlive-4953d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "karlive-4953d",
+    storageBucket: "karlive-4953d.firebasestorage.app",
+    messagingSenderId: "990353970674",
+    appId: "1:990353970674:web:033017250976fb03fb476b",
+    measurementId: "G-YEFWX1906F"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const emailInput    = document.getElementById("emailInput");
+  const passwordInput = document.getElementById("passwordInput");
+  const btnRegister   = document.getElementById("btnRegister");
+  const btnLogin      = document.getElementById("btnLogin");
+  const btnLogout     = document.getElementById("btnLogout");
+  const authStatus    = document.getElementById("authStatus");
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      authStatus.textContent = `已登入：${user.email}`;
+    } else {
+      authStatus.textContent = "未登入";
+    }
+  });
+
+  btnRegister.addEventListener("click", async () => {
+    const email = emailInput.value.trim();
+    const pw    = passwordInput.value.trim();
+    if (!email || !pw) {
+      alert("請輸入 Email 和密碼");
+      return;
+    }
+    try {
+      await createUserWithEmailAndPassword(auth, email, pw);
+      alert("註冊成功並已登入");
+    } catch (err) {
+      alert("註冊失敗：" + err.code);
+    }
+  });
+
+  btnLogin.addEventListener("click", async () => {
+    const email = emailInput.value.trim();
+    const pw    = passwordInput.value.trim();
+    if (!email || !pw) {
+      alert("請輸入 Email 和密碼");
+      return;
+    }
+    try {
+      await signInWithEmailAndPassword(auth, email, pw);
+      alert("登入成功");
+    } catch (err) {
+      alert("登入失敗：" + err.code);
+    }
+  });
+
+  btnLogout.addEventListener("click", async () => {
+    await signOut(auth);
+    alert("已登出");
+  });
+  </script>
+</body>
+</html>

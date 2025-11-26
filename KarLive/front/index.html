@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>KarLive - 首頁</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ⭐ 使用者狀態列 -->
+    <div class="user-status-box">
+        狀態：<span id="homeStatus">讀取中...</span>
+        <a href="login.html" id="homeLoginBtn">登入</a>
+        <button id="homeLogoutBtn" style="display:none;">登出</button>
+    </div>
+
+    <!-- 右側功能直排 -->
+    <div class="right-panel">
+        <div class="avatar">頭像</div>
+
+        <!-- 主點讚按鈕（這支影片的讚數） -->
+        <div class="icon-block like-block" onclick="toggleRightLike()">
+            <div class="label">點讚</div>
+            <div class="value" id="rightLikeCount">0</div>
+        </div>
+
+        <!-- 收藏 -->
+        <div class="icon-block fav-btn" onclick="toggleFavorite()">
+            <div class="label">收藏</div>
+            <div class="value" id="favoriteState">0</div>
+        </div>
+
+        <!-- 評論（之後可以做成打開留言視窗） -->
+        <div class="icon-block comment-btn" onclick="openComment()">
+            <div class="label">評論</div>
+            <div class="value" id="commentCount">0</div>
+        </div>
+
+        <!-- 關注作者 -->
+        <div class="icon-block follow-btn" onclick="followAuthor()">
+            <div class="label">關注作者</div>
+        </div>
+    </div>
+
+    <!-- 主內容（大影片） -->
+    <div class="main-content">
+        <h1><a href="">|||</a></h1>
+
+        <div class="main-video-container">
+            <video id="mainVideo" class="main-video-player" autoplay muted loop controls></video>
+        </div>
+    </div>
+
+    <!-- 底部導航列 -->
+    <nav class="bottom-nav">
+        <a href="index.html" class="active">首頁</a>
+        <a href="./直播.html">直播</a>
+        <a href="./創作.html">創作</a>
+        <a href="./訊息.html">訊息</a>
+        <a href="./個人.html">個人中心</a>
+    </nav>
+
+    <!-- Firebase + 首頁邏輯 -->
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { 
+        getDatabase, ref, onValue, set, get 
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+    import {
+        getAuth,
+        onAuthStateChanged,
+        signOut
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+
+    // 🔥 跟其他頁一樣的 Firebase 設定
+    const firebaseConfig = {
+    apiKey: "AIzaSyAuogis16VOaWE1aP4nO4JH6Dw2elN1VmA",
+    authDomain: "karlive-4953d.firebaseapp.com",
+    databaseURL: "https://karlive-4953d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "karlive-4953d",
+    storageBucket: "karlive-4953d.firebasestorage.app",
+    messagingSenderId: "990353970674",
+    appId: "1:990353970674:web:033017250976fb03fb476b",
+    measurementId: "G-YEFWX1906F"
+  };
+
+    const app  = initializeApp(firebaseConfig);
+    const db   = getDatabase(app);
+    const auth = getAuth(app);
+
+    // DOM 參考
+    const homeStatus    = document.getElementById("homeStatus");
+    const homeLoginBtn  = document.getElementById("homeLoginBtn");
+    const homeLogoutBtn = document.getElementById("homeLogoutBtn");
+
+    const mainVideo       = document.getElementById("mainVideo");
+    const rightLikeCount  = document.getElementById("rightLikeCount");
+    const favoriteState   = document.getElementById("favoriteState");
+
+
+    let currentUser     = null;   // 目前登入使用者（null = 遊客）
+    let currentVideoId  = null; // 目前首頁主影片的 ID
+        // 依照目前使用者 + 目前影片，更新右邊收藏文字
+    async function updateFavoriteState() {
+        if (!favoriteState) return;
+
+        // 沒登入或沒有選到影片，就顯示「未收藏」
+        if (!currentUser || !currentVideoId) {
+            favoriteState.innerText = "未收藏";
+            return;
+        }
+
+        const favRef = ref(db, "favorites/" + currentUser.uid + "/" + currentVideoId);
+        const snap = await get(favRef);
+        const isFav = !!snap.val();
+
+        favoriteState.innerText = isFav ? "已收藏" : "未收藏";
+    }
+    let currentOwnerUid = null;   // 這支影片的作者 UID（如果有）
+
+    // -----------------------
+    // 監聽登入狀態（遊客 / 已登入）
+    // -----------------------
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            homeStatus.textContent = `已登入：${user.email}`;
+            updateFavoriteState();
+
+            homeLoginBtn.style.display  = "none";
+            homeLogoutBtn.style.display = "inline-block";
+        } else {
+            currentUser = null;
+            homeStatus.textContent = "遊客模式";
+            updateFavoriteState();
+
+            homeLoginBtn.style.display  = "inline-block";
+            homeLogoutBtn.style.display = "none";
+        }
+    });
+
+    // 登出
+    homeLogoutBtn.addEventListener("click", () => {
+        signOut(auth);
+    });
+
+    // -----------------------
+    // 載入首頁主影片（最新一支）
+    // -----------------------
+    async function loadMainVideo() {
+        const videosRef = ref(db, "videos");
+        const snapshot  = await get(videosRef);
+        if (!snapshot.exists()) {
+            // 還沒有影片
+            mainVideo.removeAttribute("src");
+            return;
+        }
+
+        const data = snapshot.val();
+        const entries = Object.entries(data)
+            .sort(([, a], [, b]) => (b.createdAt || 0) - (a.createdAt || 0));
+
+        const [videoId, info] = entries[0];
+        currentVideoId  = videoId;
+        currentOwnerUid = info.ownerUid || null;
+
+        mainVideo.src = info.url;
+        bindRightLikes(videoId);
+        updateFavoriteState();
+    }
+
+    function bindRightLikes(videoId) {
+        const likeRef = ref(db, "likes/" + videoId);
+        onValue(likeRef, snapshot => {
+            const val = snapshot.val() ?? 0;
+            rightLikeCount.innerText = val;
+        });
+    }
+
+    // -----------------------
+    // 點讚 / 收藏 / 評論 / 關注：遊客要擋掉
+    // -----------------------
+
+    // 右側主「點讚」按鈕
+    window.toggleRightLike = function () {
+        if (!currentVideoId) return;
+        toggleLike(currentVideoId);
+    };
+
+    // 共用點讚邏輯（如果未來有小卡片也可以用這支）
+    window.toggleLike = function (videoId) {
+        if (!currentUser) {
+            alert("請先登入才能點讚");
+            return;
+        }
+        const likeRef = ref(db, "likes/" + videoId);
+        const el = (videoId === currentVideoId)
+            ? rightLikeCount
+            : document.getElementById("likeCount_" + videoId);
+
+        const now   = Number(el?.innerText || 0);
+        const key   = "liked_" + videoId + "_" + currentUser.uid;
+        const liked = localStorage.getItem(key) === "true";
+
+        if (liked) {
+            set(likeRef, now - 1);
+            localStorage.setItem(key, "false");
+        } else {
+            set(likeRef, now + 1);
+            localStorage.setItem(key, "true");
+        }
+    };
+
+    // 收藏（示意：先用 alert，不真的寫入 DB；之後你要我可以幫你做 favorites 結構）
+    window.toggleFavorite = async function () {
+        if (!currentUser) {
+            alert("請先登入才能收藏");
+            return;
+        }
+        if (!currentVideoId) return;
+const favRef = ref(db, "favorites/" + currentUser.uid + "/" + currentVideoId);
+
+        // 先查現在是不是已收藏
+        const snap = await get(favRef);
+        const isFav = !!snap.val();
+
+        // 切換 true / false
+        await set(favRef, !isFav);
+
+        // 更新右邊的文字
+        favoriteState.innerText = !isFav ? "已收藏" : "未收藏";
+    };
+
+    // 評論（示意）
+    window.openComment = function () {
+        if (!currentUser) {
+            alert("請先登入才能留言");
+            return;
+        }
+        if (!currentVideoId) return;
+
+        alert("（示意）這裡可以開啟留言輸入框，寫入 comments/" 
+              + currentVideoId);
+    };
+
+    // 關注作者
+    window.followAuthor = async function () {
+        if (!currentUser) {
+            alert("請先登入才能關注作者");
+            return;
+        }
+        if (!currentVideoId) return;
+
+        // 如果沒有預先記錄 ownerUid，就去 DB 再查一次
+        let ownerUid = currentOwnerUid;
+        if (!ownerUid) {
+            const videoRef = ref(db, "videos/" + currentVideoId);
+            const snap = await get(videoRef);
+            if (!snap.exists()) {
+                alert("找不到影片資料");
+                return;
+            }
+            const info = snap.val();
+            ownerUid = info.ownerUid;
+        }
+
+        if (!ownerUid) {
+            alert("這支影片尚無作者資訊（上傳時沒寫 ownerUid）");
+            return;
+        }
+
+        // 寫入關注關係：follows/自己uid/作者uid = true
+        const followRef = ref(db, "follows/" + currentUser.uid + "/" + ownerUid);
+        await set(followRef, true);
+        alert("已關注作者");
+    };
+
+    // 頁面載入時載入主影片
+    window.addEventListener("load", loadMainVideo);
+    </script>
+</body>
+</html>

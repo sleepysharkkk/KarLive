@@ -1,0 +1,465 @@
+/* reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #020617;
+    color: #fff;
+    font-family: system-ui, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ========= 右側直排功能列 ========= */
+.right-panel {
+    position: fixed;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #f97316;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.icon-block {
+    width: 70px;
+    height: 70px;
+    border-radius: 12px;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #1e293b;
+}
+
+.icon-block .label {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.icon-block .value {
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 3px;
+}
+
+
+/* ========= 主內容（中間） ========= */
+.main-content {
+    padding: 20px;
+    padding-bottom: 80px; /* 避開底部導航 */
+}
+
+/* ========= 底部導航列 ========= */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: #0f172a;
+    border-top: 1px solid #1e293b;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.bottom-nav a {
+    color: #e5e7eb;
+    text-decoration: none;
+    font-size: 14px;
+    text-align: center;
+    flex: 1;
+}
+
+.bottom-nav a:hover {
+    color: #f97316;
+}
+/* 底部導航：當前頁面高亮 */
+.bottom-nav a.active {
+    color: #f97316;
+    font-weight: 600;
+}
+
+/* ========= 個人中心頁面 ========= */
+
+.profile-page {
+    min-height: 100vh;
+    padding: 20px 16px 80px; /* 預留底部導航空間 */
+    background: #020617;
+}
+
+.profile-card {
+    max-width: 420px;
+    margin: 0 auto;
+    background: #020617;
+    border-radius: 20px;
+    border: 1px solid #0b1220;
+    padding: 16px 18px 18px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+
+/* 上面頭像＋名稱 */
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #f97316;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.profile-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.profile-id {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 4px;
+}
+
+.profile-bio {
+    font-size: 12px;
+    color: #e5e7eb;
+}
+
+/* 粉絲 / 關注 / 作品 */
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.profile-stat {
+    text-align: center;
+    padding: 8px 4px;
+    border-radius: 12px;
+    border: 1px solid #1f2937;
+    background: #020617;
+}
+
+.profile-stat-value {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.profile-stat-label {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 2px;
+}
+
+/* 功能列表區 */
+.profile-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.profile-list {
+    border-radius: 12px;
+    border: 1px solid #1f2937;
+    overflow: hidden;
+}
+
+.profile-item {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: #020617;
+}
+
+.profile-item + .profile-item {
+    border-top: 1px solid #1f2937;
+}
+
+.profile-item span {
+    font-size: 13px;
+    color: #e5e7eb;
+}
+
+.profile-item small {
+    font-size: 11px;
+    color: #9ca3af;
+}
+/* ========= 創作頁面 ========= */
+
+.create-page {
+    padding: 20px 16px 80px; /* 留底部導航空間 */
+    min-height: 100vh;
+    background: #020617;
+}
+
+.create-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.create-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.create-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid #1f2937;
+    background: #020617;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+.create-card:hover {
+    background: #0f172a;
+    transform: translateY(-1px);
+}
+
+.create-icon {
+    font-size: 28px;
+}
+
+.create-text span {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.create-text small {
+    display: block;
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 2px;
+}
+/* ========= 訊息頁面 ========= */
+
+.message-page {
+    padding: 20px 16px 80px; /* 預留底部導航空間 */
+    min-height: 100vh;
+    background: #020617;
+}
+
+.message-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 14px;
+}
+
+/* 上方切換 tab */
+.message-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.message-tabs .tab {
+    flex: 1;
+    padding: 6px 0;
+    border-radius: 999px;
+    border: 1px solid #1f2937;
+    background: #020617;
+    color: #e5e7eb;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.message-tabs .tab.active {
+    background: #f97316;
+    border-color: #f97316;
+    color: #020617;
+    font-weight: 600;
+}
+
+/* 訊息列表 */
+.message-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.message-item {
+    display: flex;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid #1f2937;
+    background: #020617;
+}
+
+.message-item.unread {
+    border-color: #f97316;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.message-main {
+    flex: 1;
+}
+
+.message-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.message-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.message-time {
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.message-preview {
+    font-size: 12px;
+    color: #d1d5db;
+}
+/* ========== 已上傳影片列表 ========== */
+
+.video-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.video-card {
+    padding: 10px;
+    border-radius: 14px;
+    border: 1px solid #1f2937;
+    background: #020617;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.video-player {
+    width: 220px;
+    border-radius: 10px;
+}
+
+.video-like {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.main-video-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-start;  /* 或 center，看你喜歡 */
+}
+
+.main-video-player {
+    width: 120vw;          /* 佔螢幕 60% 寬 */
+    max-width: 1500px;     /* 上限寬度 */
+    border-radius: 16px;
+    outline: none;
+    border: 1px solid #1f2937;
+    background: #000;
+}
+.main-video-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;  /* ⭐ 水平置中 */
+    width: 100%;
+}
+
+.main-video-player {
+    width: 120vw;
+    max-width: 1500px;
+    border-radius: 16px;
+}
+.main-video-player {
+    height: 80vh;         /* 占螢幕 80% 高 */
+    object-fit: cover;    /* 影片裁切填滿 */
+}
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #020617;
+  border-bottom: 1px solid #1f2937;
+  z-index: 50;
+}
+
+.top-bar + main {
+  margin-top: 48px; /* 避免被 header 擋住 */
+}
+
+.login-button {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #f97316;
+  color: #f97316;
+  text-decoration: none;
+  font-size: 14px;
+}
+.user-status-box {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(255,255,255,0.1);
+    padding: 10px 15px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+    color: white;
+    z-index: 1000;
+}
+.user-status-box a {
+    color: #4fc3f7;
+    margin-left: 10px;
+}

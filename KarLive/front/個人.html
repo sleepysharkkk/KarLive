@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>KarLive - 個人中心</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 上方狀態列：遊客模式 / 已登入 + 登入/登出 -->
+    <div class="user-status-box">
+        狀態：<span id="userStatus">讀取中...</span>
+        <a href="login.html" id="loginBtn">登入</a>
+        <button id="logoutBtn" style="display:none;">登出</button>
+    </div>
+
+    <main class="profile-page">
+        <h1 class="create-title">個人中心</h1>
+
+        <!-- 使用者資訊區 -->
+        <div class="auth-status-box">
+            <div>目前狀態：<span id="authStatus">未登入</span></div>
+        </div>
+
+        <h2 class="section-title" style="margin-top:20px;">我上傳的影片</h2>
+        <div id="myVideoList" class="video-list"></div>
+    </main>
+
+    <!-- 底部導航列 -->
+    <nav class="bottom-nav">
+        <a href="index.html">首頁</a>
+        <a href="./直播.html">直播</a>
+        <a href="./創作.html">創作</a>
+        <a href="./訊息.html">訊息</a>
+        <a href="./個人.html" class="active">個人中心</a>
+    </nav>
+
+    <!-- ⭐ 唯一的一個 script，所有 Firebase / Auth / Database 都在這裡 ⭐ -->
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { 
+        getAuth,
+        onAuthStateChanged,
+        signOut
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+    import { 
+        getDatabase, ref, onValue, set, get 
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+    // 🔥 Firebase 設定（跟其他頁一樣）
+    const firebaseConfig = {
+    apiKey: "AIzaSyAuogis16VOaWE1aP4nO4JH6Dw2elN1VmA",
+    authDomain: "karlive-4953d.firebaseapp.com",
+    databaseURL: "https://karlive-4953d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "karlive-4953d",
+    storageBucket: "karlive-4953d.firebasestorage.app",
+    messagingSenderId: "990353970674",
+    appId: "1:990353970674:web:033017250976fb03fb476b",
+    measurementId: "G-YEFWX1906F"
+  };
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getDatabase(app);
+    let currentUser = null;
+
+
+    // DOM 元素
+    const statusEl    = document.getElementById("userStatus");
+    const loginBtn    = document.getElementById("loginBtn");
+    const logoutBtn   = document.getElementById("logoutBtn");
+    const authStatus  = document.getElementById("authStatus");
+    const myVideoList = document.getElementById("myVideoList");
+
+    // -----------------------
+    // 監聽登入狀態（同時更新上方狀態列 ＋ 下方「我上傳的影片」）
+    // -----------------------
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            // 🔹 未登入 / 遊客模式
+            currentUser = null;
+
+            statusEl.innerText    = "遊客模式";
+            authStatus.textContent = "未登入";
+
+            loginBtn.style.display  = "inline-block";
+            logoutBtn.style.display = "none";
+
+            myVideoList.innerHTML = "";
+            return;
+        }
+
+        // 🔹 已登入
+        currentUser = user;
+
+        statusEl.innerText      = "已登入：" + user.email;
+        authStatus.textContent  = `已登入：${user.email}`;
+        profileHint.textContent = "以下是你上傳的影片：";
+
+        loginBtn.style.display  = "none";
+        logoutBtn.style.display = "inline-block";
+
+        await loadMyVideos(user.uid);
+    });
+
+    // ⭐ 點登出按鈕
+    logoutBtn.addEventListener("click", () => {
+        signOut(auth);
+    });
+
+    // -----------------------
+    // 顯示影片卡片
+    // -----------------------
+    function renderMyVideoCard(videoId, info) {
+        const card = document.createElement("div");
+        card.className = "video-card";
+        const created = info.createdAt 
+            ? new Date(info.createdAt).toLocaleString()
+            : "";
+
+        card.innerHTML = `
+            <video src="${info.url}" controls class="video-player"></video>
+            <div class="video-like">
+                <div class="video-meta">上傳時間：${created}</div>
+                <div class="icon-block" onclick="toggleLike('${videoId}')">
+                    <div class="label">點讚</div>
+                    <div class="value" id="likeCount_${videoId}">0</div>
+                </div>
+            </div>
+        `;
+        myVideoList.appendChild(card);
+
+        setupLike(videoId);
+    }
+
+    // -----------------------
+    // 點讚同步（和其他頁共用邏輯）
+    // -----------------------
+    function setupLike(videoId) {
+        const likeRef = ref(db, "likes/" + videoId);
+        const el = document.getElementById("likeCount_" + videoId);
+
+        onValue(likeRef, snapshot => {
+            el.innerText = snapshot.val() ?? 0;
+        });
+    }
+
+    window.toggleLike = function(videoId) {
+        const likeRef = ref(db, "likes/" + videoId);
+        const el = document.getElementById("likeCount_" + videoId);
+        const now   = Number(el.innerText);
+        const key   = "liked_" + videoId;
+        const liked = localStorage.getItem(key) === "true";
+
+        if (liked) {
+            set(likeRef, now - 1);
+            localStorage.setItem(key, "false");
+        } else {
+            set(likeRef, now + 1);
+            localStorage.setItem(key, "true");
+        }
+    };
+
+    // -----------------------
+    // 讀取「我上傳的影片」
+    // -----------------------
+    async function loadMyVideos(uid) {
+        myVideoList.innerHTML = "載入中…";
+
+        // 用 userVideos/uid 快速找到自己的影片 ID
+        const userVideosRef   = ref(db, "userVideos/" + uid);
+        const snapUserVideos  = await get(userVideosRef);
+
+        if (!snapUserVideos.exists()) {
+            myVideoList.innerHTML = "你目前還沒有上傳影片。";
+            return;
+        }
+
+        const videoIds = Object.keys(snapUserVideos.val());
+
+        myVideoList.innerHTML = "";
+        for (const videoId of videoIds) {
+            const videoRef  = ref(db, "videos/" + videoId);
+            const snapVideo = await get(videoRef);
+            if (!snapVideo.exists()) continue;
+
+            const info = snapVideo.val();
+            renderMyVideoCard(videoId, info);
+        }
+
+        if (videoIds.length === 0) {
+            myVideoList.innerHTML = "你目前還沒有上傳影片。";
+        }
+    }
+    </script>
+</body>
+</html>
